@@ -6,7 +6,7 @@ grep -q /mnt/lfs/build/"$PKG"
 
 mkdir build
 cd    build
-/env.sh ../configure $ACFLAGS
+/env.sh ../configure $ACFLAGS \
         --with-incompatible-bdb --disable-tests
 make
 

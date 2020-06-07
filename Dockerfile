@@ -89,7 +89,7 @@ COPY ./sources/*     /mnt/lfs/sources
 COPY env.sh build.sh /
 RUN tar  xf       /mnt/lfs/sources/"$PKG".txz -C /mnt/lfs/build      \
  && cd            /mnt/lfs/build/"$PKG"                              \
- && /env.sh /build.sh
+ && /build.sh
 
 # install pkg, strip if stage2
 COPY strip.sh /
