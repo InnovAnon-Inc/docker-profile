@@ -2,7 +2,7 @@
 set -euxo pipefail
 (( ! $# ))
 echo "$PWD" |
-grep -q /mnt/lfs/sources/"$PKG"
+grep -q /mnt/lfs/build/"$PKG"
 
 mkdir build
 cd    build

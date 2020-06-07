@@ -1,11 +1,24 @@
 FROM innovanon/poobuntu-16.04:latest
 
-COPY dpkg.list manual.list /
+# name of package we're compiling
+ARG PKG
+ENV PKG="$PKG"
 
+# name of executable we're profiling
+ARG BIN
+ENV BIN="$BIN"
+
+# controlled by docker-compose
+ARG MODE
+ENV MODE="$MODE"
+
+# update, upgrade, install software
+COPY dpkg.list manual.list /
 RUN apt-fast update                   \
  && apt-fast full-upgrade             \
  && apt-fast install $(cat dpkg.list)
 
+# add a "non-privileged" user
 RUN useradd -ms /bin/bash lfs         \
  && mkdir -v         /mnt/lfs /perf   \
  && chown -v lfs:lfs /mnt/lfs /perf
@@ -13,16 +26,6 @@ USER lfs
 RUN mkdir -v         /mnt/lfs/sources \
                      /mnt/lfs/build
 
-ARG MODE
-ENV MODE="$MODE"
-
-ARG PKG
-ENV PKG="$PKG"
-
-ARG BIN
-ENV BIN="$BIN"
-
-# TODO set stage2 flags
 # for static lib... StakeShare doesn't seem to like it
 #ENV DEADCODESTRIP='-Wl,-static -fvtable-gc -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,-s'
 #ENV        COMMON="-flto -flto-compression-level=9 -fuse-linker-plugin $DEADCODESTRIP"
@@ -50,9 +53,8 @@ ENV  LDFLAGS="$COMMON"
 #ENV LDFLAGS="-s --static"
 ENV ACFLAGS="--disable-shared --enable-static"
 
-COPY clone.sh configure.sh build.sh /
-
 # clone repo
+COPY clone.sh /
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
       mkdir -v      /mnt/lfs/repos                                   \
    && cd            /mnt/lfs/repos                                   \
@@ -60,6 +62,7 @@ RUN if [ "$MODE" = "stage1" ] ; then                                 \
    || exit $? ; fi
 
 # create src pkg
+COPY configure.sh /
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
       cd            /mnt/lfs/repos/"$PKG"                            \
    && /configure.sh                                                  \
@@ -72,11 +75,9 @@ RUN if [ "$MODE" = "stage1" ] ; then                                 \
 # shared: env, entrypoint
 # stage1: profile
 # stage2: strip, sources, perf
-COPY env.sh profile.sh strip.sh entrypoint.sh /
-COPY ./sources/*  /mnt/lfs/sources
-COPY ./perf/*     /perf
 
 # convert perf to afdo
+COPY ./perf/* /perf
 RUN if [ "$MODE" = "stage2" ] ; then                                 \
       create_gcov --binary="$BIN"                                    \
                   --profile=/perf/perf.data                          \
@@ -84,11 +85,14 @@ RUN if [ "$MODE" = "stage2" ] ; then                                 \
    || exit $? ; fi
 
 # compile src pkg => bin (pkg)
+COPY ./sources/*     /mnt/lfs/sources
+COPY env.sh build.sh /
 RUN tar  xf       /mnt/lfs/sources/"$PKG".txz -C /mnt/lfs/build      \
  && cd            /mnt/lfs/build/"$PKG"                              \
- && /build.sh
+ && /env.sh /build.sh
 
 # install pkg, strip if stage2
+COPY strip.sh /
 USER root
 RUN cd              /mnt/lfs/build/"$PKG"/build                      \
  && make install                                                     \
@@ -100,6 +104,7 @@ RUN cd              /mnt/lfs/build/"$PKG"/build                      \
  && rm -rf          /mnt/lfs/build                                   \
  && rm -v /strip.sh /env.sh
 
+# cleanup
 #RUN apt-mark manual $(manual.list)      \
 # && apt-fast purge  $(cat dpkg.list)    \
 # && /poobuntu-clean.sh                  \
@@ -112,6 +117,7 @@ RUN cd              /mnt/lfs/build/"$PKG"/build                      \
 RUN usermod -a -G audio lfs \
  && usermod -a -G video lfs ; 
 
+COPY profile.sh entrypoint.sh /
 USER lfs
 WORKDIR /home/lfs
 ENTRYPOINT ["/entrypoint.sh"]
