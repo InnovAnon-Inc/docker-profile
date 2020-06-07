@@ -2,9 +2,11 @@
 set -euxo pipefail
 (( $# ))
 
-ARCH="$(gcc -march=native  -Q --help=target | awk '$1 == "-march=" {print $2}')"
-TUNE="$(gcc -march="$ARCH" -Q --help=target | awk '$1 == "-mtune=" {print $2}')"
-TUNE="${TUNE:-$ARCH}"
+#ARCH="$(gcc -march=native  -Q --help=target | awk '$1 == "-march=" {print $2}')"
+#TUNE="$(gcc -march="$ARCH" -Q --help=target | awk '$1 == "-mtune=" {print $2}')"
+#TUNE="${TUNE:-$ARCH}"
+ARCH="`march -no-tune`"
+TUNE="`mtune`"
 
 # sanity check
 [[ "${ARCH}" ]]
