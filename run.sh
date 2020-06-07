@@ -18,6 +18,8 @@ dockerd &
 
 cd "`dirname "$(readlink -f "$0")"`"
 
+touch {sources,perf}/.sentinel
+
 # stage1
 
 nice -n +19      -- \
