@@ -1,28 +1,37 @@
 FROM innovanon/poobuntu-16.04:latest
+#FROM innovanon/poobuntu:latest
 
-COPY dpkg.list manual.list /
-
-RUN apt-fast update                   \
- && apt-fast full-upgrade             \
- && apt-fast install $(cat dpkg.list)
-
-RUN useradd -ms /bin/bash lfs         \
- && mkdir -v         /mnt/lfs /perf   \
- && chown -v lfs:lfs /mnt/lfs /perf
-USER lfs
-RUN mkdir -v         /mnt/lfs/sources \
-                     /mnt/lfs/build
-
-ARG MODE
-ENV MODE="$MODE"
-
+# name of package we're compiling
 ARG PKG
 ENV PKG="$PKG"
 
+# name of executable we're profiling
 ARG BIN
 ENV BIN="$BIN"
 
-# TODO set stage2 flags
+# controlled by docker-compose
+ARG MODE
+ENV MODE="$MODE"
+
+# update, upgrade, install software
+COPY dpkg.list dpkg.glob manual.list /
+RUN curl -o /usr/local/bin/apt-glob     \
+    https://raw.githubusercontent.com/InnovAnon-Inc/repo/master/apt-glob.sh \
+ && chmod -v +x /usr/local/bin/apt-glob \
+ && apt-fast update                     \
+ && apt-fast full-upgrade               \
+ && apt-fast install $(cat dpkg.list)   \
+    $(apt-glob < dpkg.glob)             \
+ && rm /usr/local/bin/apt-glob
+
+# add a "non-privileged" user
+RUN useradd -ms /bin/bash lfs           \
+ && mkdir -v         /mnt/lfs /perf     \
+ && chown -v lfs:lfs /mnt/lfs /perf
+USER lfs
+RUN mkdir -v         /mnt/lfs/sources   \
+                     /mnt/lfs/build
+
 # for static lib... StakeShare doesn't seem to like it
 #ENV DEADCODESTRIP='-Wl,-static -fvtable-gc -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,-s'
 #ENV        COMMON="-flto -flto-compression-level=9 -fuse-linker-plugin $DEADCODESTRIP"
@@ -48,25 +57,24 @@ ENV  LDFLAGS="$COMMON"
 #ENV CFLAGS="-static -static-libgcc"
 #ENV CXXFLAGS="-static-libstdc++"
 #ENV LDFLAGS="-s --static"
-ENV ACFLAGS="--disable-shared --enable-static"
-
-COPY clone.sh configure.sh build.sh /
+#ENV ACFLAGS="--disable-shared --enable-static"
+ENV ACFLAGS=
 
 # clone repo
+COPY clone.sh /
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
       mkdir -v      /mnt/lfs/repos                                   \
    && cd            /mnt/lfs/repos                                   \
-      /clone.sh                                                      \
-&&ls -la /mnt/lfs/repos \
+   && /clone.sh                                                      \
    || exit $? ; fi
 
 # create src pkg
+COPY configure.sh /
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
-ls -la /mnt/lfs/repos && \
       cd            /mnt/lfs/repos/"$PKG"                            \
    && /configure.sh                                                  \
    && cd            /mnt/lfs/repos                                   \
-   && tar acf       /mnt/lfs/sources/"$PKG".txz "$PKG" --exclude-vcs \
+   && tar acf       /mnt/lfs/sources/"$PKG".txz --exclude-vcs "$PKG" \
    && cd            /                                                \
    && rm -rf        /mnt/lfs/repos                                   \
    || exit $? ; fi
@@ -86,6 +94,7 @@ COPY ./sources/*  /mnt/lfs/sources
 COPY ./perf/*     /perf
 
 # convert perf to afdo
+COPY ./perf/* /perf
 RUN if [ "$MODE" = "stage2" ] ; then                                 \
       create_gcov --binary="$BIN"                                    \
                   --profile=/perf/perf.data                          \
@@ -93,11 +102,14 @@ RUN if [ "$MODE" = "stage2" ] ; then                                 \
    || exit $? ; fi
 
 # compile src pkg => bin (pkg)
+COPY ./sources/*     /mnt/lfs/sources
+COPY env.sh build.sh /
 RUN tar  xf       /mnt/lfs/sources/"$PKG".txz -C /mnt/lfs/build      \
  && cd            /mnt/lfs/build/"$PKG"                              \
- && /build.sh
+ && firejail --rlimit-as=$((1 << 30)) -c /build.sh
 
 # install pkg, strip if stage2
+COPY strip.sh /
 USER root
 RUN cd              /mnt/lfs/build/"$PKG"/build                      \
  && make install                                                     \
@@ -109,6 +121,7 @@ RUN cd              /mnt/lfs/build/"$PKG"/build                      \
  && rm -rf          /mnt/lfs/build                                   \
  && rm -v /strip.sh /env.sh
 
+# cleanup
 #RUN apt-mark manual $(manual.list)      \
 # && apt-fast purge  $(cat dpkg.list)    \
 # && /poobuntu-clean.sh                  \
@@ -121,6 +134,7 @@ RUN cd              /mnt/lfs/build/"$PKG"/build                      \
 RUN usermod -a -G audio lfs \
  && usermod -a -G video lfs ; 
 
+COPY profile.sh entrypoint.sh /
 USER lfs
 WORKDIR /home/lfs
 ENTRYPOINT ["/entrypoint.sh"]
