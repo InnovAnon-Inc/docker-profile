@@ -56,13 +56,11 @@ COPY clone.sh configure.sh build.sh /
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
       mkdir -v      /mnt/lfs/repos                                   \
    && cd            /mnt/lfs/repos                                   \
-      /clone.sh                                                      \
-&&ls -la /mnt/lfs/repos \
+   && /clone.sh                                                      \
    || exit $? ; fi
 
 # create src pkg
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
-ls -la /mnt/lfs/repos && \
       cd            /mnt/lfs/repos/"$PKG"                            \
    && /configure.sh                                                  \
    && cd            /mnt/lfs/repos                                   \
