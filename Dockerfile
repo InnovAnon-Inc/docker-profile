@@ -1,5 +1,5 @@
-#FROM innovanon/poobuntu-16.04:latest
-FROM innovanon/poobuntu:latest
+FROM innovanon/poobuntu-16.04:latest
+#FROM innovanon/poobuntu:latest
 
 # name of package we're compiling
 ARG PKG
@@ -15,19 +15,21 @@ ENV MODE="$MODE"
 
 # update, upgrade, install software
 COPY dpkg.list dpkg.glob manual.list /
-RUN apt-fast update                   \
- && apt-fast full-upgrade             \
- && apt-fast install $(cat dpkg.list) \
-    $(xargs -n 1 apt list             \
-    < dpkg.glob 2> /dev/null          \
-    | awk -F / 'NR > 1 {print $1}')
+RUN curl -o /usr/local/bin/apt-glob     \
+    https://raw.githubusercontent.com/InnovAnon-Inc/repo/master/apt-glob.sh \
+ && chmod -v +x /usr/local/bin/apt-glob \
+ && apt-fast update                     \
+ && apt-fast full-upgrade               \
+ && apt-fast install $(cat dpkg.list)   \
+    $(apt-glob < dpkg.glob)             \
+ && rm /usr/local/bin/apt-glob
 
 # add a "non-privileged" user
-RUN useradd -ms /bin/bash lfs         \
- && mkdir -v         /mnt/lfs /perf   \
+RUN useradd -ms /bin/bash lfs           \
+ && mkdir -v         /mnt/lfs /perf     \
  && chown -v lfs:lfs /mnt/lfs /perf
 USER lfs
-RUN mkdir -v         /mnt/lfs/sources \
+RUN mkdir -v         /mnt/lfs/sources   \
                      /mnt/lfs/build
 
 # for static lib... StakeShare doesn't seem to like it
@@ -55,7 +57,8 @@ ENV  LDFLAGS="$COMMON"
 #ENV CFLAGS="-static -static-libgcc"
 #ENV CXXFLAGS="-static-libstdc++"
 #ENV LDFLAGS="-s --static"
-ENV ACFLAGS="--disable-shared --enable-static"
+#ENV ACFLAGS="--disable-shared --enable-static"
+ENV ACFLAGS=
 
 # clone repo
 COPY clone.sh /
@@ -93,7 +96,7 @@ COPY ./sources/*     /mnt/lfs/sources
 COPY env.sh build.sh /
 RUN tar  xf       /mnt/lfs/sources/"$PKG".txz -C /mnt/lfs/build      \
  && cd            /mnt/lfs/build/"$PKG"                              \
- && /build.sh
+ && firejail --rlimit-as=$((1 << 30)) -c /build.sh
 
 # install pkg, strip if stage2
 COPY strip.sh /

@@ -8,5 +8,6 @@ mkdir build
 cd    build
 /env.sh ../configure $ACFLAGS \
         --with-incompatible-bdb --disable-tests
-make
+# TODO remove -j1: unreadable errors
+make -j1
 

@@ -2,6 +2,7 @@ autoconf
 automake
 autotools-dev
 build-essential
+firejail
 git
 libboost-all-dev
 libdb-dev
@@ -10,9 +11,9 @@ libevent-dev
 libisl-dev
 libleveldb-dev
 libprotobuf-dev
-libqt4-dev
 libssl-dev
 libtool
+libzmq3-dev
 pkgconf
 upx-ucl
 
