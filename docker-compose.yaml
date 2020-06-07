@@ -1,0 +1,61 @@
+version: '3.3'
+services:
+  ssc:
+    build:
+      context: .
+      args:
+        MODE: stage1
+        PKG:  StakeShare-Core-2.1.1
+        BIN:  stakeshare
+    hostname: ssc
+    restart: unless-stopped
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /etc/localtime:/etc/localtime:rw
+      - ./perf:/perf:rw
+      - ./sources:/sources:rw
+    #ports:
+    #  - 10666:10666/udp
+    #networks:
+    #  ssc-net:
+    #    ipv4_address: 192.168.66.10
+    image: innovnanon/ssc:latest
+    container_name: ssc
+    privileged: true
+    devices:
+      - "/dev/snd"
+      - "/sys/kernel/debug"
+    environment:
+      - DISPLAY=${DISPLAY}
+
+  ssc-prof:
+    build:
+      context: .
+      args:
+        MODE: stage2
+        PKG:  StakeShare-Core-2.1.1
+        BIN:  stakeshare
+    hostname: ssc-prof
+    restart: unless-stopped
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /etc/localtime:/etc/localtime:rw
+    #ports:
+    #  - 10666:10666/udp
+    #networks:
+    #  ssc-net:
+    #    ipv4_address: 192.168.66.10
+    image: innovnanon/ssc-prof:latest
+    container_name: ssc-prof
+    privileged: true
+    devices:
+      - "/dev/snd"
+    environment:
+      - DISPLAY=${DISPLAY}
+
+#networks:
+#  ssc-net:
+#    ipam:
+#      config:
+#      - subnet: 192.168.66.0/24
+
