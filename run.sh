@@ -18,6 +18,10 @@ dockerd &
 
 cd "`dirname "$(readlink -f "$0")"`"
 
+for k in sources perf ; do
+  [[ -d "$k" ]] ||
+  mkdir -v "$k"
+done
 touch {sources,perf}/.sentinel
 
 # stage1
