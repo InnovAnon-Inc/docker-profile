@@ -57,14 +57,18 @@ RUN if [ "$MODE" = "stage1" ] ; then                                 \
       mkdir -v      /mnt/lfs/repos                                   \
    && cd            /mnt/lfs/repos                                   \
       /clone.sh                                                      \
+&&ls -la /mnt/lfs/repos \
    || exit $? ; fi
 
 # create src pkg
 RUN if [ "$MODE" = "stage1" ] ; then                                 \
+ls -la /mnt/lfs/repos && \
       cd            /mnt/lfs/repos/"$PKG"                            \
    && /configure.sh                                                  \
    && cd            /mnt/lfs/repos                                   \
    && tar acf       /mnt/lfs/sources/"$PKG".txz "$PKG" --exclude-vcs \
+   && cd            /                                                \
+   && rm -rf        /mnt/lfs/repos                                   \
    || exit $? ; fi
 
 # shared: env, entrypoint
@@ -83,7 +87,7 @@ RUN if [ "$MODE" = "stage2" ] ; then                                 \
 
 # compile src pkg => bin (pkg)
 RUN tar  xf       /mnt/lfs/sources/"$PKG".txz -C /mnt/lfs/build      \
- && cd            /mnt/lfs/build/"$PKG" \
+ && cd            /mnt/lfs/build/"$PKG"                              \
  && /build.sh
 
 # install pkg, strip if stage2
@@ -92,10 +96,10 @@ RUN cd              /mnt/lfs/build/"$PKG"/build                      \
  && make install                                                     \
  && cd              /                                                \
  && if [ "$MODE" = "stage2" ] ; then                                 \
-      /strip.sh || exit $? ;                                         \
-    fi                                                               \
+      rm -rf        /mnt/lfs/sources                                 \
+   && /strip.sh                                                      \
+   || exit $? ; fi                                                   \
  && rm -rf          /mnt/lfs/build                                   \
-                    /mnt/lfs/repos                                   \
  && rm -v /strip.sh /env.sh
 
 #RUN apt-mark manual $(manual.list)      \
