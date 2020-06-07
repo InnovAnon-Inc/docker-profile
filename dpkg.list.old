@@ -10,6 +10,7 @@ libevent-dev
 libisl-dev
 libleveldb-dev
 libprotobuf-dev
+libqt4-dev
 libssl-dev
 libtool
 pkgconf

@@ -1,4 +1,5 @@
-FROM innovanon/poobuntu-16.04:latest
+#FROM innovanon/poobuntu-16.04:latest
+FROM innovanon/poobuntu:latest
 
 # name of package we're compiling
 ARG PKG
@@ -13,10 +14,13 @@ ARG MODE
 ENV MODE="$MODE"
 
 # update, upgrade, install software
-COPY dpkg.list manual.list /
+COPY dpkg.list dpkg.glob manual.list /
 RUN apt-fast update                   \
  && apt-fast full-upgrade             \
- && apt-fast install $(cat dpkg.list)
+ && apt-fast install $(cat dpkg.list) \
+    $(xargs -n 1 apt list             \
+    < dpkg.glob 2> /dev/null          \
+    | awk -F / 'NR > 1 {print $1}')
 
 # add a "non-privileged" user
 RUN useradd -ms /bin/bash lfs         \
@@ -67,7 +71,7 @@ RUN if [ "$MODE" = "stage1" ] ; then                                 \
       cd            /mnt/lfs/repos/"$PKG"                            \
    && /configure.sh                                                  \
    && cd            /mnt/lfs/repos                                   \
-   && tar acf       /mnt/lfs/sources/"$PKG".txz "$PKG" --exclude-vcs \
+   && tar acf       /mnt/lfs/sources/"$PKG".txz --exclude-vcs "$PKG" \
    && cd            /                                                \
    && rm -rf        /mnt/lfs/repos                                   \
    || exit $? ; fi
