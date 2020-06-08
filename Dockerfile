@@ -91,7 +91,7 @@ ADD https://raw.githubusercontent.com/InnovAnon-Inc/repo/master/march.sh \
     /usr/local/bin/
 RUN mv /usr/local/bin/march.sh /usr/local/bin/march \
  && mv /usr/local/bin/mtune.sh /usr/local/bin/mtune \
- && chmod -v +x                /usr/local/bin/march \
+ && chmod -v +rx               /usr/local/bin/march \
                                /usr/local/bin/mtune
 USER lfs
 COPY env.sh profile.sh strip.sh entrypoint.sh /
