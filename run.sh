@@ -33,7 +33,7 @@ docker-compose build ssc
   sudo umount /sys/kernel/debug || :
   sudo mount -t debugfs nodev /sys/kernel/debug
 
-  xhost +local:`whoami`
+  xhost +local:$USER || :
   sudo             -- \
   nice -n -20      -- \
   sudo -u `whoami` -- \
@@ -46,7 +46,7 @@ trap 'docker-compose down ssc-prof' 0
 nice -n +19      -- \
 docker-compose build ssc-prof
 
-xhost +local:`whoami`
+xhost +local:$USER || :
 sudo             -- \
 nice -n -20      -- \
 sudo -u `whoami` -- \

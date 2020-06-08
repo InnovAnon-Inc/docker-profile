@@ -85,6 +85,16 @@ RUN if [ "$MODE" = "stage1" ] ; then                                 \
 # shared: env, entrypoint
 # stage1: profile
 # stage2: strip, sources, perf
+ADD https://raw.githubusercontent.com/InnovAnon-Inc/repo/master/march.sh \
+    https://raw.githubusercontent.com/InnovAnon-Inc/repo/master/mtune.sh \
+    /usr/local/bin/
+RUN mv /usr/local/bin/march.sh /usr/local/bin/march \
+ && mv /usr/local/bin/mtune.sh /usr/local/bin/mtune \
+ && chmod -v +x                /usr/local/bin/march \
+                               /usr/local/bin/mtune
+COPY env.sh profile.sh strip.sh entrypoint.sh /
+COPY ./sources/*  /mnt/lfs/sources
+COPY ./perf/*     /perf
 
 # convert perf to afdo
 COPY ./perf/* /perf
