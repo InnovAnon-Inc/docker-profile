@@ -12,7 +12,7 @@ libisl-dev
 libleveldb-dev
 libprotobuf-dev
 libqt4-dev
-libssl-dev
+libssl1.0-dev
 libtool
 libzmq3-dev
 pkgconf

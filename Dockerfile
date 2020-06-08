@@ -1,5 +1,6 @@
-FROM innovanon/poobuntu-16.04:latest
 #FROM innovanon/poobuntu:latest
+FROM innovanon/poobuntu-18.04:latest
+#FROM innovanon/poobuntu-16.04:latest
 
 # name of package we're compiling
 ARG PKG
@@ -14,7 +15,7 @@ ARG MODE
 ENV MODE="$MODE"
 
 # update, upgrade, install software
-COPY dpkg.list dpkg.glob manual.list /
+COPY dpkg.list dpkg.glob manual.list remove.glob /
 RUN curl -o /usr/local/bin/apt-glob     \
     https://raw.githubusercontent.com/InnovAnon-Inc/repo/master/apt-glob.sh \
  && chmod -v +x /usr/local/bin/apt-glob \
@@ -22,6 +23,8 @@ RUN curl -o /usr/local/bin/apt-glob     \
  && apt-fast full-upgrade               \
  && apt-fast install $(cat dpkg.list)   \
     $(apt-glob < dpkg.glob)             \
+ && apt-fast remove                     \
+    $(apt-glob < remove.glob)           \
  && rm /usr/local/bin/apt-glob
 
 # add a "non-privileged" user
